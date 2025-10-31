@@ -1,0 +1,464 @@
+<!-- <!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8">
+        <meta http-equiv="X-UA-Compatible" content="IE=edge">
+        <meta name="viewport" content="initial-scale=1,user-scalable=no,maximum-scale=1,width=device-width">
+        <meta name="mobile-web-app-capable" content="yes">
+        <meta name="apple-mobile-web-app-capable" content="yes">
+        <link rel="stylesheet" href="css/leaflet.css">
+        <link rel="stylesheet" href="css/L.Control.Layers.Tree.css">
+        <link rel="stylesheet" href="css/qgis2web.css">
+        <link rel="stylesheet" href="css/fontawesome-all.min.css">
+        <link rel="stylesheet" href="css/leaflet.photon.css">
+        <style>
+        html, body, #map {
+            width: 100%;
+            height: 100%;
+            padding: 0;
+            margin: 0;
+        }
+        </style>
+        <title></title>
+    </head>
+    <body>
+        <div id="map">
+        </div>
+        <script src="js/qgis2web_expressions.js"></script>
+        <script src="js/leaflet.js"></script>
+        <script src="js/L.Control.Layers.Tree.min.js"></script>
+        <script src="js/leaflet.rotatedMarker.js"></script>
+        <script src="js/leaflet.pattern.js"></script>
+        <script src="js/leaflet-hash.js"></script>
+        <script src="js/Autolinker.min.js"></script>
+        <script src="js/rbush.min.js"></script>
+        <script src="js/labelgun.min.js"></script>
+        <script src="js/labels.js"></script>
+        <script src="js/leaflet.photon.js"></script>
+        <script src="data/prediction_with_area2_1.js"></script>
+        <script>
+        var map = L.map('map', {
+            zoomControl:false, maxZoom:28, minZoom:1
+        })
+        var hash = new L.Hash(map);
+        map.attributionControl.setPrefix('<a href="https://github.com/tomchadwin/qgis2web" target="_blank">qgis2web</a> &middot; <a href="https://leafletjs.com" title="A JS library for interactive maps">Leaflet</a> &middot; <a href="https://qgis.org">QGIS</a>');
+        var autolinker = new Autolinker({truncate: {length: 30, location: 'smart'}});
+        // remove popup's row if "visible-with-data"
+        function removeEmptyRowsFromPopupContent(content, feature) {
+         var tempDiv = document.createElement('div');
+         tempDiv.innerHTML = content;
+         var rows = tempDiv.querySelectorAll('tr');
+         for (var i = 0; i < rows.length; i++) {
+             var td = rows[i].querySelector('td.visible-with-data');
+             var key = td ? td.id : '';
+             if (td && td.classList.contains('visible-with-data') && feature.properties[key] == null) {
+                 rows[i].parentNode.removeChild(rows[i]);
+             }
+         }
+         return tempDiv.innerHTML;
+        }
+        // modify popup if contains media
+        function addClassToPopupIfMedia(content, popup) {
+            var tempDiv = document.createElement('div');
+            tempDiv.innerHTML = content;
+            var imgTd = tempDiv.querySelector('td img');
+            if (imgTd) {
+                var src = imgTd.getAttribute('src');
+                if (/\.(jpg|jpeg|png|gif|bmp|webp|avif)$/i.test(src)) {
+                    popup._contentNode.classList.add('media');
+                    setTimeout(function() {
+                        popup.update();
+                    }, 10);
+                } else if (/\.(mp3|wav|ogg|aac)$/i.test(src)) {
+                    var audio = document.createElement('audio');
+                    audio.controls = true;
+                    audio.src = src;
+                    imgTd.parentNode.replaceChild(audio, imgTd);
+                    popup._contentNode.classList.add('media');
+                    setTimeout(function() {
+                        popup.setContent(tempDiv.innerHTML);
+                        popup.update();
+                    }, 10);
+                } else if (/\.(mp4|webm|ogg|mov)$/i.test(src)) {
+                    var video = document.createElement('video');
+                    video.controls = true;
+                    video.src = src;
+                    video.style.width = "400px";
+                    video.style.height = "300px";
+                    video.style.maxHeight = "60vh";
+                    video.style.maxWidth = "60vw";
+                    imgTd.parentNode.replaceChild(video, imgTd);
+                    popup._contentNode.classList.add('media');
+                    // Aggiorna il popup quando il video carica i metadati
+                    video.addEventListener('loadedmetadata', function() {
+                        popup.update();
+                    });
+                    setTimeout(function() {
+                        popup.setContent(tempDiv.innerHTML);
+                        popup.update();
+                    }, 10);
+                } else {
+                    popup._contentNode.classList.remove('media');
+                }
+            } else {
+                popup._contentNode.classList.remove('media');
+            }
+        }
+        var zoomControl = L.control.zoom({
+            position: 'topleft'
+        }).addTo(map);
+        var bounds_group = new L.featureGroup([]);
+        function setBounds() {
+            if (bounds_group.getLayers().length) {
+                map.fitBounds(bounds_group.getBounds());
+            }
+        }
+        map.createPane('pane_GoogleSatellite_0');
+        map.getPane('pane_GoogleSatellite_0').style.zIndex = 400;
+        var layer_GoogleSatellite_0 = L.tileLayer('https://mt1.google.com/vt/lyrs=s&x={x}&y={y}&z={z}', {
+            pane: 'pane_GoogleSatellite_0',
+            opacity: 1.0,
+            attribution: '',
+            minZoom: 1,
+            maxZoom: 28,
+            minNativeZoom: 0,
+            maxNativeZoom: 19
+        });
+        layer_GoogleSatellite_0;
+        map.addLayer(layer_GoogleSatellite_0);
+        function pop_prediction_with_area2_1(feature, layer) {
+            var popupContent = '<table>\
+                    <tr>\
+                        <th scope="row">polygon_id</th>\
+                        <td class="visible-with-data" id="polygon_id">' + (feature.properties['polygon_id'] !== null ? autolinker.link(String(feature.properties['polygon_id']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <th scope="row">Longitude</th>\
+                        <td class="visible-with-data" id="centroid_x">' + (feature.properties['centroid_x'] !== null ? autolinker.link(String(feature.properties['centroid_x']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <th scope="row">Latitude</th>\
+                        <td class="visible-with-data" id="centroid_y">' + (feature.properties['centroid_y'] !== null ? autolinker.link(String(feature.properties['centroid_y']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <th scope="row">area_sqm</th>\
+                        <td class="visible-with-data" id="area_sqm">' + (feature.properties['area_sqm'] !== null ? autolinker.link(String(feature.properties['area_sqm']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <th scope="row">area_rai</th>\
+                        <td class="visible-with-data" id="area_rai">' + (feature.properties['area_rai'] !== null ? autolinker.link(String(feature.properties['area_rai']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <th scope="row">Province</th>\
+                        <td class="visible-with-data" id="P_NAME_E">' + (feature.properties['P_NAME_E'] !== null ? autolinker.link(String(feature.properties['P_NAME_E']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <th scope="row">District</th>\
+                        <td class="visible-with-data" id="A_NAME_E">' + (feature.properties['A_NAME_E'] !== null ? autolinker.link(String(feature.properties['A_NAME_E']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <th scope="row">Subdistrict</th>\
+                        <td class="visible-with-data" id="T_NAME_E">' + (feature.properties['T_NAME_E'] !== null ? autolinker.link(String(feature.properties['T_NAME_E']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                </table>';
+            var content = removeEmptyRowsFromPopupContent(popupContent, feature);
+			layer.on('popupopen', function(e) {
+				addClassToPopupIfMedia(content, e.popup);
+			});
+			layer.bindPopup(content, { maxHeight: 400 });
+        }
+
+        function style_prediction_with_area2_1_0() {
+            return {
+                pane: 'pane_prediction_with_area2_1',
+                stroke: false, 
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(217,255,45,1.0)',
+                interactive: true,
+            }
+        }
+        map.createPane('pane_prediction_with_area2_1');
+        map.getPane('pane_prediction_with_area2_1').style.zIndex = 401;
+        map.getPane('pane_prediction_with_area2_1').style['mix-blend-mode'] = 'normal';
+        var layer_prediction_with_area2_1 = new L.geoJson(json_prediction_with_area2_1, {
+            attribution: '',
+            interactive: true,
+            dataVar: 'json_prediction_with_area2_1',
+            layerName: 'layer_prediction_with_area2_1',
+            pane: 'pane_prediction_with_area2_1',
+            onEachFeature: pop_prediction_with_area2_1,
+            style: style_prediction_with_area2_1_0,
+        });
+        bounds_group.addLayer(layer_prediction_with_area2_1);
+        map.addLayer(layer_prediction_with_area2_1);
+        setBounds();
+        </script>        
+    </body>
+</html> -->
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="initial-scale=1,user-scalable=no,maximum-scale=1,width=device-width">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <link rel="stylesheet" href="css/leaflet.css">
+    <link rel="stylesheet" href="css/L.Control.Layers.Tree.css">
+    <link rel="stylesheet" href="css/qgis2web.css">
+    <link rel="stylesheet" href="css/fontawesome-all.min.css">
+    <link rel="stylesheet" href="css/leaflet.photon.css">
+    <style>
+      html, body, #map { width: 100%; height: 100%; padding: 0; margin: 0; }
+      /* --- Filters panel style --- */
+      #filters{
+        position:absolute; z-index:1000; top:10px; right:10px;  /* << moved to top-right */
+        left:auto;                                            /* << don't stick to left */
+        background:#fff; padding:10px 12px; border-radius:10px;
+        box-shadow:0 2px 10px rgba(0,0,0,.2);
+        font:13px Arial; max-width:92vw;
+      }
+      #filters .row{ display:flex; gap:6px; flex-wrap:wrap; align-items:center; }
+      #filters select, #filters input{ height:28px; }
+    </style>
+    <title></title>
+  </head>
+  <body>
+
+    <!-- Filters panel (now top-right) -->
+    <div id="filters">
+      <div class="row">
+        <select id="f_prov"><option value="">Province</option></select>
+        <select id="f_amp"><option value="">District</option></select>
+        <select id="f_tam"><option value="">Subdistrict</option></select>
+        <input id="f_min" type="number" placeholder="Min rai" style="width:90px;">
+        <input id="f_max" type="number" placeholder="Max rai" style="width:90px;">
+        <button id="f_apply">Apply</button>
+        <button id="f_clear">Clear</button>
+      </div>
+    </div>
+
+    <div id="map"></div>
+
+    <script src="js/qgis2web_expressions.js"></script>
+    <script src="js/leaflet.js"></script>
+    <script src="js/L.Control.Layers.Tree.min.js"></script>
+    <script src="js/leaflet.rotatedMarker.js"></script>
+    <script src="js/leaflet.pattern.js"></script>
+    <script src="js/leaflet-hash.js"></script>
+    <script src="js/Autolinker.min.js"></script>
+    <script src="js/rbush.min.js"></script>
+    <script src="js/labelgun.min.js"></script>
+    <script src="js/labels.js"></script>
+    <script src="js/leaflet.photon.js"></script>
+
+    <!-- data (ออกมาจาก qgis2web) -->
+    <script src="data/prediction_with_area2_1.js"></script>
+
+    <!-- สคริปต์เดิมจาก qgis2web -->
+    <script>
+      var map = L.map('map', { zoomControl:false, maxZoom:28, minZoom:1 });
+      var hash = new L.Hash(map);
+      map.attributionControl.setPrefix('<a href="https://github.com/tomchadwin/qgis2web" target="_blank">qgis2web</a> &middot; <a href="https://leafletjs.com" title="A JS library for interactive maps">Leaflet</a> &middot; <a href="https://qgis.org">QGIS</a>');
+      var autolinker = new Autolinker({truncate: {length: 30, location: 'smart'}});
+
+      function removeEmptyRowsFromPopupContent(content, feature) {
+        var tempDiv = document.createElement('div');
+        tempDiv.innerHTML = content;
+        var rows = tempDiv.querySelectorAll('tr');
+        for (var i = 0; i < rows.length; i++) {
+          var td = rows[i].querySelector('td.visible-with-data');
+          var key = td ? td.id : '';
+          if (td && td.classList.contains('visible-with-data') && feature.properties[key] == null) {
+            rows[i].parentNode.removeChild(rows[i]);
+          }
+        }
+        return tempDiv.innerHTML;
+      }
+      function addClassToPopupIfMedia(content, popup) {
+        var tempDiv = document.createElement('div');
+        tempDiv.innerHTML = content;
+        var imgTd = tempDiv.querySelector('td img');
+        if (imgTd) {
+          var src = imgTd.getAttribute('src');
+          if (/\.(jpg|jpeg|png|gif|bmp|webp|avif)$/i.test(src)) {
+            popup._contentNode.classList.add('media');
+            setTimeout(function() { popup.update(); }, 10);
+          } else if (/\.(mp3|wav|ogg|aac)$/i.test(src)) {
+            var audio = document.createElement('audio'); audio.controls = true; audio.src = src;
+            imgTd.parentNode.replaceChild(audio, imgTd);
+            popup._contentNode.classList.add('media');
+            setTimeout(function() { popup.setContent(tempDiv.innerHTML); popup.update(); }, 10);
+          } else if (/\.(mp4|webm|ogg|mov)$/i.test(src)) {
+            var video = document.createElement('video'); video.controls = true; video.src = src;
+            video.style.width = "400px"; video.style.height = "300px";
+            video.style.maxHeight = "60vh"; video.style.maxWidth = "60vw";
+            imgTd.parentNode.replaceChild(video, imgTd);
+            popup._contentNode.classList.add('media');
+            video.addEventListener('loadedmetadata', function() { popup.update(); });
+            setTimeout(function() { popup.setContent(tempDiv.innerHTML); popup.update(); }, 10);
+          } else {
+            popup._contentNode.classList.remove('media');
+          }
+        } else {
+          popup._contentNode.classList.remove('media');
+        }
+      }
+      var zoomControl = L.control.zoom({ position: 'topleft' }).addTo(map);
+      var bounds_group = new L.featureGroup([]);
+      function setBounds() {
+        if (bounds_group.getLayers().length) { map.fitBounds(bounds_group.getBounds()); }
+      }
+      map.createPane('pane_GoogleSatellite_0');
+      map.getPane('pane_GoogleSatellite_0').style.zIndex = 400;
+      var layer_GoogleSatellite_0 = L.tileLayer('https://mt1.google.com/vt/lyrs=s&x={x}&y={y}&z={z}', {
+        pane: 'pane_GoogleSatellite_0', opacity: 1.0, attribution: '',
+        minZoom: 1, maxZoom: 28, minNativeZoom: 0, maxNativeZoom: 19
+      });
+      map.addLayer(layer_GoogleSatellite_0);
+
+      function pop_prediction_with_area2_1(feature, layer) {
+        var popupContent = '<table>\
+          <tr><th scope="row">polygon_id</th><td class="visible-with-data" id="polygon_id">' + (feature.properties['polygon_id'] ?? '') + '</td></tr>\
+          <tr><th scope="row">Longitude</th><td class="visible-with-data" id="centroid_x">' + (feature.properties['centroid_x'] ?? '') + '</td></tr>\
+          <tr><th scope="row">Latitude</th><td class="visible-with-data" id="centroid_y">' + (feature.properties['centroid_y'] ?? '') + '</td></tr>\
+          <tr><th scope="row">area_sqm</th><td class="visible-with-data" id="area_sqm">' + (feature.properties['area_sqm'] ?? '') + '</td></tr>\
+          <tr><th scope="row">area_rai</th><td class="visible-with-data" id="area_rai">' + (feature.properties['area_rai'] ?? '') + '</td></tr>\
+          <tr><th scope="row">Province</th><td class="visible-with-data" id="P_NAME_E">' + (feature.properties['P_NAME_E'] ?? '') + '</td></tr>\
+          <tr><th scope="row">District</th><td class="visible-with-data" id="A_NAME_E">' + (feature.properties['A_NAME_E'] ?? '') + '</td></tr>\
+          <tr><th scope="row">Subdistrict</th><td class="visible-with-data" id="T_NAME_E">' + (feature.properties['T_NAME_E'] ?? '') + '</td></tr>\
+        </table>';
+        var content = removeEmptyRowsFromPopupContent(popupContent, feature);
+        layer.on('popupopen', function(e) { addClassToPopupIfMedia(content, e.popup); });
+        layer.bindPopup(content, { maxHeight: 400 });
+      }
+
+      function style_prediction_with_area2_1_0() {
+        return {
+          pane: 'pane_prediction_with_area2_1',
+          stroke: false,
+          fill: true,
+          fillOpacity: 1,
+          fillColor: 'rgba(217,255,45,1.0)',
+          interactive: true,
+        }
+      }
+      map.createPane('pane_prediction_with_area2_1');
+      map.getPane('pane_prediction_with_area2_1').style.zIndex = 401;
+      map.getPane('pane_prediction_with_area2_1').style['mix-blend-mode'] = 'normal';
+
+      var layer_prediction_with_area2_1 = new L.geoJson(json_prediction_with_area2_1, {
+        attribution: '',
+        interactive: true,
+        dataVar: 'json_prediction_with_area2_1',
+        layerName: 'layer_prediction_with_area2_1',
+        pane: 'pane_prediction_with_area2_1',
+        onEachFeature: pop_prediction_with_area2_1,
+        style: style_prediction_with_area2_1_0,
+      });
+      bounds_group.addLayer(layer_prediction_with_area2_1);
+      map.addLayer(layer_prediction_with_area2_1);
+      setBounds();
+    </script>
+
+    <!-- Filter script -->
+    <script>
+      var targetLayer = layer_prediction_with_area2_1;
+
+      function collectAll() {
+        const P = new Set(), A = new Set(), T = new Set();
+        targetLayer.eachLayer(function (lyr) {
+          const p = (lyr.feature && lyr.feature.properties) || {};
+          if (p.P_NAME_E) P.add(p.P_NAME_E);
+          if (p.A_NAME_E) A.add(p.A_NAME_E);
+          if (p.T_NAME_E) T.add(p.T_NAME_E);
+        });
+        fillSelect('f_prov', Array.from(P).sort());
+        fillSelect('f_amp',  Array.from(A).sort());
+        fillSelect('f_tam',  Array.from(T).sort());
+      }
+      function fillSelect(id, arr){
+        const sel = document.getElementById(id);
+        sel.length = 1;
+        arr.forEach(v => { const o=document.createElement('option'); o.value=v; o.textContent=v; sel.appendChild(o); });
+      }
+
+      document.getElementById('f_prov').addEventListener('change', function(){
+        const pv = this.value;
+        const A = new Set(), T = new Set();
+        targetLayer.eachLayer(function(lyr){
+          const p = lyr.feature && lyr.feature.properties || {};
+          if (!pv || p.P_NAME_E === pv) {
+            if (p.A_NAME_E) A.add(p.A_NAME_E);
+            if (p.T_NAME_E) T.add(p.T_NAME_E);
+          }
+        });
+        fillSelect('f_amp', Array.from(A).sort());
+        fillSelect('f_tam', Array.from(T).sort());
+      });
+
+      document.getElementById('f_amp').addEventListener('change', function(){
+        const pv = document.getElementById('f_prov').value;
+        const av = this.value;
+        const T = new Set();
+        targetLayer.eachLayer(function(lyr){
+          const p = lyr.feature && lyr.feature.properties || {};
+          if ((!pv || p.P_NAME_E===pv) && (!av || p.A_NAME_E===av)) {
+            if (p.T_NAME_E) T.add(p.T_NAME_E);
+          }
+        });
+        fillSelect('f_tam', Array.from(T).sort());
+      });
+
+      function applyFilter() {
+        const f_prov = document.getElementById('f_prov').value;
+        const f_amp  = document.getElementById('f_amp').value;
+        const f_tam  = document.getElementById('f_tam').value;
+        const f_min  = parseFloat(document.getElementById('f_min').value);
+        const f_max  = parseFloat(document.getElementById('f_max').value);
+
+        let any = false;
+
+        targetLayer.eachLayer(function(lyr){
+          const p = lyr.feature && lyr.feature.properties || {};
+          let ok = true;
+
+          if (f_prov && p.P_NAME_E !== f_prov) ok = false;
+          if (f_amp  && p.A_NAME_E !== f_amp)   ok = false;
+          if (f_tam  && p.T_NAME_E !== f_tam)   ok = false;
+
+          const area = parseFloat(p.area_rai); // หน่วยไร่
+          if (!isNaN(f_min) && !(area >= f_min)) ok = false;
+          if (!isNaN(f_max) && !(area <= f_max)) ok = false;
+
+          if (ok) { lyr.setStyle && lyr.setStyle({opacity:1, fillOpacity:1}); any = true; }
+          else    { lyr.setStyle && lyr.setStyle({opacity:0, fillOpacity:0}); }
+        });
+
+        if (any) {
+          const g = L.featureGroup();
+          targetLayer.eachLayer(function(lyr){
+            if (lyr.options && lyr.options.fillOpacity > 0) g.addLayer(lyr);
+          });
+          if (g.getLayers().length) map.fitBounds(g.getBounds(), {padding:[18,18]});
+        }
+      }
+
+      document.getElementById('f_apply').addEventListener('click', applyFilter);
+      document.getElementById('f_clear').addEventListener('click', function(){
+        ['f_prov','f_amp','f_tam','f_min','f_max'].forEach(id => document.getElementById(id).value='');
+        targetLayer.eachLayer(function(lyr){
+          lyr.setStyle && lyr.setStyle({opacity:1, fillOpacity:1});
+        });
+        try { map.fitBounds(targetLayer.getBounds(), {padding:[18,18]}); } catch(e){}
+      });
+
+      collectAll();
+    </script>
+
+  </body>
+</html>
+
+
